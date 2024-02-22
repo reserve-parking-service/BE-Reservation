@@ -29,4 +29,9 @@ public class FlightReservation {
     private Seat seat;
     @Enumerated(EnumType.STRING)
     private PaymentStatus paymentStatus;
+
+    @Enumerated(EnumType.STRING)
+    private PassengerType passengerType;
+    private int discountedPrice;
+
 }

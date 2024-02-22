@@ -1,21 +1,18 @@
 package com.icebear2n2.reservationv2.domain.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.sql.Timestamp;
 
-@Entity
-@Table(name = "auth_codes")
-@Getter
+@Data
 @Builder
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "_auth_code")
 public class AuthCode {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

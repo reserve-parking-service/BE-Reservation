@@ -46,6 +46,9 @@ public class FlightService {
                     .seatClass("Business")
                     .price(businessClassPrice) // 비즈니스석 가격 설정
                     .reserved(false)
+                    .adultDiscountRate(0)
+                    .childDiscountRate(25)
+                    .infantDiscountRate(50)
                     .flight(flight) // 해당 좌석이 속한 비행기 설정
                     .build();
             seats.add(seat); // 생성된 좌석을 리스트에 추가
@@ -59,6 +62,9 @@ public class FlightService {
                     .seatClass("Economy")
                     .price(economyClassPrice) // 이코노미석 가격 설정
                     .reserved(false)
+                    .adultDiscountRate(0)
+                    .childDiscountRate(25)
+                    .infantDiscountRate(50)
                     .flight(flight) // 해당 좌석이 속한 비행기 설정
                     .build();
             seats.add(seat); // 생성된 좌석을 리스트에 추가
