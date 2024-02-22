@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/verification")
+@RequestMapping("/api/v1/verification")
 public class AuthCodeController {
 
     private final AuthCodeService authCodeService;
@@ -22,7 +22,7 @@ public class AuthCodeController {
         return new ResponseEntity<>("SEND AUTH CODE SUCCESSFULLY.", HttpStatus.OK);
     }
 
-    @GetMapping
+    @PostMapping("/check")
     public ResponseEntity<String> checkAuthCode(@RequestBody CheckAuthCodeRequest checkAuthCodeRequest) {
         authCodeService.checkAuthCode(checkAuthCodeRequest);
         return new ResponseEntity<>("CHECK AUTH CODE SUCCESSFULLY.", HttpStatus.OK);
