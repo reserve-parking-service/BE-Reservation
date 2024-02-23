@@ -8,19 +8,25 @@ import com.icebear2n2.reservationv2.domain.request.UpdateFlightRequest;
 import com.icebear2n2.reservationv2.domain.response.FlightResponse;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class FlightService {
     private final FlightRepository flightRepository;
-
+    private static final Logger logger = LoggerFactory.getLogger(FlightService.class);
     // 비행기 생성
     public FlightResponse createFlight(FlightRequest flightRequest) {
         try {
@@ -151,5 +157,17 @@ public class FlightService {
         } catch (Exception ex) {
             throw new RuntimeException("Failed to delete flight: " + ex.getMessage());
         }
+    }
+
+    // 매분마다 스케줄러를 실행하여 출발 시간이 지난 항공편 삭제
+    @Scheduled(cron = "0 * * * * ?") // 매분 0초마다 실행
+    public void deletePastFlights() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Flight> flights = flightRepository.findAll().stream().filter(flight -> flight.getDepartureTime() != null && LocalDateTime.of(flight.getDepartureDate(), flight.getDepartureTime()).isBefore(now))
+                .toList();
+        // 조회된 항공편 삭제 전 로그
+        logger.info("Deleting past flights: {} flights found", flights.size());
+        // 조회된 항공편 삭제
+        flightRepository.deleteAll(flights);
     }
 }
