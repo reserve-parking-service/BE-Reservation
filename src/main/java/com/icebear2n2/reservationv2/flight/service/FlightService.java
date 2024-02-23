@@ -1,8 +1,10 @@
 package com.icebear2n2.reservationv2.flight.service;
 
 import com.icebear2n2.reservationv2.domain.entity.Flight;
+import com.icebear2n2.reservationv2.domain.entity.FlightReservation;
 import com.icebear2n2.reservationv2.domain.entity.Seat;
 import com.icebear2n2.reservationv2.domain.repository.FlightRepository;
+import com.icebear2n2.reservationv2.domain.repository.FlightReservationRepository;
 import com.icebear2n2.reservationv2.domain.request.FlightRequest;
 import com.icebear2n2.reservationv2.domain.request.UpdateFlightRequest;
 import com.icebear2n2.reservationv2.domain.response.FlightResponse;
@@ -26,6 +28,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class FlightService {
     private final FlightRepository flightRepository;
+    private final FlightReservationRepository flightReservationRepository;
     private static final Logger logger = LoggerFactory.getLogger(FlightService.class);
     // 비행기 생성
     public FlightResponse createFlight(FlightRequest flightRequest) {
@@ -165,9 +168,24 @@ public class FlightService {
         LocalDateTime now = LocalDateTime.now();
         List<Flight> flights = flightRepository.findAll().stream().filter(flight -> flight.getDepartureTime() != null && LocalDateTime.of(flight.getDepartureDate(), flight.getDepartureTime()).isBefore(now))
                 .toList();
+
         // 조회된 항공편 삭제 전 로그
         logger.info("Deleting past flights: {} flights found", flights.size());
+
+        flights.forEach(flight ->
+                // 각 항공편에 대한 모든 예약 조회 및 삭제
+                {
+                    List<FlightReservation> reservations = flightReservationRepository.findAllByFlight(flight);
+
+                    if (!reservations.isEmpty()) {
+                        flightReservationRepository.deleteAll(reservations);
+                        logger.info("Deleted reservations for flight ID: {}", flight.getId());
+                    }
+                }
+                );
+
         // 조회된 항공편 삭제
         flightRepository.deleteAll(flights);
+        logger.info("Deleted {} past flights.", flights.size());
     }
 }
