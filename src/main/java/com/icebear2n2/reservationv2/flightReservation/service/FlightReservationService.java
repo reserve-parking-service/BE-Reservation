@@ -105,10 +105,12 @@ public class FlightReservationService {
 
     public void deleteReservation(Long reservationId) {
         try {
-            if (!flightReservationRepository.existsById(reservationId)) {
-                throw new EntityNotFoundException("Reservation not found with id: " + reservationId);
-            }
-            flightReservationRepository.deleteById(reservationId);
+            FlightReservation flightReservation = flightReservationRepository.findById(reservationId).orElseThrow(() -> new EntityNotFoundException("Reservation not found with id: " + reservationId));
+            Seat seat = seatRepository.findBySeatNumber(flightReservation.getSeat().getSeatNumber());
+            seat.setReserved(false);
+            seatRepository.save(seat);
+            flightReservationRepository.delete(flightReservation);
+
         } catch (Exception ex) {
 
             ex.printStackTrace();
