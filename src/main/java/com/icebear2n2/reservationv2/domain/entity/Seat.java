@@ -1,18 +1,15 @@
 package com.icebear2n2.reservationv2.domain.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @Entity
-@Table(name = "_seat")
+@Table(name = "seats")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Getter
+@Builder
 public class Seat {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

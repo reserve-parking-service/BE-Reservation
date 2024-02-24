@@ -1,10 +1,7 @@
 package com.icebear2n2.reservationv2.domain.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -14,12 +11,12 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @Entity
-@Table(name = "_flight")
+@Table(name = "flights")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Getter
+@Builder
 public class Flight {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -53,5 +50,17 @@ public class Flight {
 
     public void setDeletedAt(Timestamp deletedAt) {
         this.deletedAt = deletedAt;
+    }
+
+    public void setSeats(List<Seat> seats) {
+        this.seats = seats;
+    }
+
+    public void setDepartureTime(LocalTime departureTime) {
+        this.departureTime = departureTime;
+    }
+
+    public void setArrivalTime(LocalTime arrivalTime) {
+        this.arrivalTime = arrivalTime;
     }
 }

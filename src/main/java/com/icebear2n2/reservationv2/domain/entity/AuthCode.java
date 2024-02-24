@@ -7,12 +7,13 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.sql.Timestamp;
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+
 @Entity
-@Table(name = "_auth_code")
+@Table(name = "auth_codes")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Getter
+@Builder
 public class AuthCode {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
