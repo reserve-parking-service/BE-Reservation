@@ -5,6 +5,10 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.sql.Timestamp;
 
 @Data
 @Builder
@@ -34,4 +38,15 @@ public class FlightReservation {
     private PassengerType passengerType;
     private int discountedPrice;
 
+    @CreationTimestamp
+    private Timestamp createdAt;
+
+    @UpdateTimestamp
+    private Timestamp updatedAt;
+
+    private Timestamp cancelledAt;
+
+    public void setCancelledAt(Timestamp cancelledAt) {
+        this.cancelledAt = cancelledAt;
+    }
 }

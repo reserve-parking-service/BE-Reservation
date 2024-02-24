@@ -20,6 +20,9 @@ public class FlightReservationResponse {
     private PaymentStatus paymentStatus;
     private PassengerType passengerType;
     private int discountedPrice;
+    private String createdAt;
+    private String updatedAt;
+    private String cancelledAt;
 
     public FlightReservationResponse(FlightReservation reservation) {
         this.reservationId = reservation.getId();
@@ -29,6 +32,9 @@ public class FlightReservationResponse {
         this.paymentStatus = reservation.getPaymentStatus();
         this.passengerType = reservation.getPassengerType();
         this.discountedPrice = reservation.getDiscountedPrice();
+        this.createdAt = reservation.getCreatedAt().toString();
+        this.updatedAt = reservation.getUpdatedAt().toString();
+        this.cancelledAt = reservation.getCancelledAt() != null ? reservation.getCancelledAt().toString() : null;
     }
 
 

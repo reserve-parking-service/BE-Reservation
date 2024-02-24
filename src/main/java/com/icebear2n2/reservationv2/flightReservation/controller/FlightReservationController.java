@@ -1,6 +1,7 @@
 package com.icebear2n2.reservationv2.flightReservation.controller;
 
 import com.icebear2n2.reservationv2.domain.request.FlightReservationRequest;
+import com.icebear2n2.reservationv2.domain.request.UpdatePaymentStatusRequest;
 import com.icebear2n2.reservationv2.domain.response.FlightReservationResponse;
 import com.icebear2n2.reservationv2.flightReservation.service.FlightReservationService;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,14 @@ public class FlightReservationController {
         PageRequest pageRequest = PageRequest.of(page, size);
         Page<FlightReservationResponse> response = flightReservationService.getAllReservations(pageRequest);
         return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{reservationId}/payment-status")
+    public ResponseEntity<FlightReservationResponse> updatePaymentStatus(@PathVariable Long reservationId, @RequestBody UpdatePaymentStatusRequest updatePaymentStatusRequest) {
+        FlightReservationResponse response = flightReservationService.updatePaymentStatus(reservationId, updatePaymentStatusRequest);
+
+        return ResponseEntity.ok(response);
+
     }
 
     @DeleteMapping("/{reservationId}")
