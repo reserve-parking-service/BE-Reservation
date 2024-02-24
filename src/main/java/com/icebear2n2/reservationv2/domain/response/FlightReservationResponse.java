@@ -8,21 +8,44 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class FlightReservationResponse {
+
+    @Schema(description = "예약 ID")
     private Long reservationId;
+
+    @Schema(description = "사용자 정보")
     private UserResponse user;
+
+    @Schema(description = "항공편 정보")
     private FlightResponse flight;
+
+    @Schema(description = "좌석 정보")
     private SeatResponse seat;
+
+    @Schema(description = "결제 상태")
     private PaymentStatus paymentStatus;
+
+    @Schema(description = "승객 유형")
     private PassengerType passengerType;
+
+    @Schema(description = "할인된 가격")
     private int discountedPrice;
+
+    @Schema(description = "생성일시")
     private String createdAt;
+
+    @Schema(description = "수정일시")
     private String updatedAt;
+
+    @Schema(description = "취소일시")
     private String cancelledAt;
+
 
     public FlightReservationResponse(FlightReservation reservation) {
         this.reservationId = reservation.getId();
@@ -36,11 +59,4 @@ public class FlightReservationResponse {
         this.updatedAt = reservation.getUpdatedAt().toString();
         this.cancelledAt = reservation.getCancelledAt() != null ? reservation.getCancelledAt().toString() : null;
     }
-
-
-//    public static List<FlightReservationResponse> fromReservationList(List<FlightReservation> reservations) {
-//        return reservations.stream()
-//                .map(FlightReservationResponse::new)
-//                .collect(Collectors.toList());
-//    }
 }
