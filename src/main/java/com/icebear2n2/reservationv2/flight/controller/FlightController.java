@@ -81,7 +81,7 @@ public class FlightController {
         return ResponseEntity.ok(updatedFlight);
     }
 
-    @DeleteMapping("/{flightId}")
+    @PutMapping("/{flightId}")
     public ResponseEntity<String> deleteFlight(@PathVariable Long flightId) {
         flightService.deleteFlight(flightId);
         return ResponseEntity.ok("Flight with ID " + flightId + " deleted successfully.");
