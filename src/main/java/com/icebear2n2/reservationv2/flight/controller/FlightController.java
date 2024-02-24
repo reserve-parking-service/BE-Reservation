@@ -53,6 +53,20 @@ public class FlightController {
         return ResponseEntity.ok(flights);
     }
 
+    @GetMapping("/all/deleted")
+    public ResponseEntity<Page<FlightResponse>> getAllFlightsByDeleted(@RequestParam(defaultValue = "0") int page,
+                                                              @RequestParam(defaultValue = "10") int size) {
+        Page<FlightResponse> flights = flightService.getAllByDeletedFlight(PageRequest.of(page, size));
+        return ResponseEntity.ok(flights);
+    }
+
+    @GetMapping("/flights/not-deleted")
+    public ResponseEntity<Page<FlightResponse>> getAllFlightsByNotDeleted(@RequestParam(defaultValue = "0") int page,
+                                                                       @RequestParam(defaultValue = "10") int size) {
+        Page<FlightResponse> flights = flightService.getAllByNotDeletedFlight(PageRequest.of(page, size));
+        return ResponseEntity.ok(flights);
+    }
+
     @GetMapping("/all")
     public ResponseEntity<Page<FlightResponse>> getAllFlights(@RequestParam(defaultValue = "0") int page,
                                                               @RequestParam(defaultValue = "10") int size) {

@@ -5,7 +5,10 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -36,7 +39,19 @@ public class Flight {
 
     private int seatCapacity;
 
+    @CreationTimestamp
+    private Timestamp createdAt;
+
+    @UpdateTimestamp
+    private Timestamp updatedAt;
+
+    private Timestamp deletedAt;
+
     // 비즈니스 로직을 통해 생성된 좌석 리스트
     @OneToMany(mappedBy = "flight", cascade = CascadeType.ALL)
     private List<Seat> seats;
+
+    public void setDeletedAt(Timestamp deletedAt) {
+        this.deletedAt = deletedAt;
+    }
 }

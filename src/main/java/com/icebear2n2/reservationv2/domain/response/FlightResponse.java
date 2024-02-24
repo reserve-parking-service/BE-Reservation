@@ -25,6 +25,9 @@ public class FlightResponse {
     private LocalDate arrivalDate;
     private LocalTime arrivalTime;
     private int seatCapacity;
+    private String createdAt;
+    private String updatedAt;
+    private String deletedAt;
     private List<SeatResponse> seats;
 
     public FlightResponse(Flight flight) {
@@ -37,6 +40,9 @@ public class FlightResponse {
         this.arrivalDate = flight.getArrivalDate();
         this.arrivalTime = flight.getArrivalTime();
         this.seatCapacity = flight.getSeatCapacity();
+        this.createdAt = flight.getCreatedAt().toString();
+        this.updatedAt = flight.getUpdatedAt().toString();
+        this.deletedAt = flight.getDeletedAt() != null ? flight.getDeletedAt().toString() : null;
         this.seats = flight.getSeats().stream()
                 .map(SeatResponse::new)
                 .collect(Collectors.toList());

@@ -18,6 +18,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -28,7 +29,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class FlightService {
     private final FlightRepository flightRepository;
-    private final FlightReservationRepository flightReservationRepository;
     private static final Logger logger = LoggerFactory.getLogger(FlightService.class);
     // 비행기 생성
     public FlightResponse createFlight(FlightRequest flightRequest) {
@@ -120,10 +120,30 @@ public class FlightService {
         }
     }
 
-    // 모든 항공편 조회
+    // 모든 항공편 조회(삭제 포함)
     public Page<FlightResponse> getAllFlights(PageRequest pageRequest) {
         try {
             Page<Flight> allFlights = flightRepository.findAll(pageRequest);
+            return allFlights.map(FlightResponse::new);
+        } catch (Exception ex) {
+            throw new RuntimeException("Failed to get all flights: " + ex.getMessage());
+        }
+    }
+
+    // 삭제된 항공편 조회
+    public Page<FlightResponse> getAllByDeletedFlight(PageRequest pageRequest) {
+        try {
+            Page<Flight> allFlights = flightRepository.findAllByDeletedAtNotNull(pageRequest);
+            return allFlights.map(FlightResponse::new);
+        } catch (Exception ex) {
+            throw new RuntimeException("Failed to get all flights: " + ex.getMessage());
+        }
+    }
+
+    // 삭제되지 않은 항공편 조회
+    public Page<FlightResponse> getAllByNotDeletedFlight(PageRequest pageRequest) {
+        try {
+            Page<Flight> allFlights = flightRepository.findAllByDeletedAtNull(pageRequest);
             return allFlights.map(FlightResponse::new);
         } catch (Exception ex) {
             throw new RuntimeException("Failed to get all flights: " + ex.getMessage());
@@ -150,42 +170,71 @@ public class FlightService {
         }
     }
 
-    // 항공편 삭제
+    // 항공편 삭제 X -> 삭제 시간 저장 (예약 기록 저장을 위해)
     public void deleteFlight(Long flightId) {
         try {
-            if (!flightRepository.existsById(flightId)) {
-                throw new EntityNotFoundException("Flight not found with id: " + flightId);
-            }
-            flightRepository.deleteById(flightId);
+            Flight flight = flightRepository.findById(flightId).orElseThrow(() -> new EntityNotFoundException("Flight not found with id: " + flightId));
+            flight.setDeletedAt(new Timestamp(System.currentTimeMillis()));
+            flightRepository.save(flight);
         } catch (Exception ex) {
             throw new RuntimeException("Failed to delete flight: " + ex.getMessage());
         }
     }
 
-    // 매분마다 스케줄러를 실행하여 출발 시간이 지난 항공편 삭제
+    // 항공편 삭제 X -> 삭제 시간 저장 (예약 기록 저장을 위해)
     @Scheduled(cron = "0 * * * * ?") // 매분 0초마다 실행
     public void deletePastFlights() {
         LocalDateTime now = LocalDateTime.now();
-        List<Flight> flights = flightRepository.findAll().stream().filter(flight -> flight.getDepartureTime() != null && LocalDateTime.of(flight.getDepartureDate(), flight.getDepartureTime()).isBefore(now))
-                .toList();
+        List<Flight> flights = flightRepository.findAll();
+        int deletedCount = 0;
+
+        // 현재 시간보다 이전에 출발한 항공편을 찾고, 삭제 시간 설정
+        for (Flight flight : flights) {
+            if (isPastFlight(flight, now)) {
+                flight.setDeletedAt(new Timestamp(System.currentTimeMillis()));
+                deletedCount++;
+            }
+        }
 
         // 조회된 항공편 삭제 전 로그
-        logger.info("Deleting past flights: {} flights found", flights.size());
-
-        flights.forEach(flight ->
-                // 각 항공편에 대한 모든 예약 조회 및 삭제
-                {
-                    List<FlightReservation> reservations = flightReservationRepository.findAllByFlight(flight);
-
-                    if (!reservations.isEmpty()) {
-                        flightReservationRepository.deleteAll(reservations);
-                        logger.info("Deleted reservations for flight ID: {}", flight.getId());
-                    }
-                }
-                );
+        logger.info("Deleting past flights: {} flights found", deletedCount);
 
         // 조회된 항공편 삭제
-        flightRepository.deleteAll(flights);
-        logger.info("Deleted {} past flights.", flights.size());
+        flightRepository.saveAll(flights);
+
+        logger.info("Deleted {} past flights.", deletedCount);
     }
+
+    // 현재 시간보다 이전에 출발한 항공편이 있는지 확인
+    private boolean isPastFlight(Flight flight, LocalDateTime now) {
+        LocalDateTime departureDateTime = LocalDateTime.of(flight.getDepartureDate(), flight.getDepartureTime());
+        return flight.getDepartureTime() != null && departureDateTime.isBefore(now);
+    }
+
+    // 매분마다 스케줄러를 실행하여 출발 시간이 지난 항공편 삭제
+//    @Scheduled(cron = "0 * * * * ?") // 매분 0초마다 실행
+//    public void deletePastFlights() {
+//        LocalDateTime now = LocalDateTime.now();
+//        List<Flight> flights = flightRepository.findAll().stream().filter(flight -> flight.getDepartureTime() != null && LocalDateTime.of(flight.getDepartureDate(), flight.getDepartureTime()).isBefore(now))
+//                .toList();
+//
+//        // 조회된 항공편 삭제 전 로그
+//        logger.info("Deleting past flights: {} flights found", flights.size());
+//
+//        flights.forEach(flight ->
+//                // 각 항공편에 대한 모든 예약 조회 및 삭제
+//                {
+//                    List<FlightReservation> reservations = flightReservationRepository.findAllByFlight(flight);
+//
+//                    if (!reservations.isEmpty()) {
+//                        flightReservationRepository.deleteAll(reservations);
+//                        logger.info("Deleted reservations for flight ID: {}", flight.getId());
+//                    }
+//                }
+//                );
+//
+//        // 조회된 항공편 삭제
+//        flightRepository.deleteAll(flights);
+//        logger.info("Deleted {} past flights.", flights.size());
+//    }
 }
