@@ -2,7 +2,8 @@ package com.icebear2n2.reservationv2.domain.request;
 
 import lombok.*;
 
-@Data
+@Getter
+@AllArgsConstructor
 public class PasswordRecoveryRequest {
     private Long userId;
     private String code;

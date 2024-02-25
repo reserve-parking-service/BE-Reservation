@@ -1,12 +1,15 @@
 package com.icebear2n2.reservationv2.domain.request;
 
 import com.icebear2n2.reservationv2.domain.entity.Flight;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 
-@Data
+@Getter
+@AllArgsConstructor
 public class FlightRequest {
     private String airplaneName;
     private String departure;
