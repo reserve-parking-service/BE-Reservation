@@ -7,6 +7,7 @@ import com.icebear2n2.reservationv2.flightReservation.service.FlightReservationS
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,36 +19,29 @@ public class FlightReservationController {
     private final FlightReservationService flightReservationService;
 
     @PostMapping("/create")
-    public ResponseEntity<FlightReservationResponse> createReservation(@RequestBody FlightReservationRequest reservationRequest) {
-        FlightReservationResponse response = flightReservationService.createReservation(reservationRequest);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    @ResponseStatus(HttpStatus.CREATED)
+    public FlightReservationResponse createReservation(@RequestBody FlightReservationRequest reservationRequest) {
+        return flightReservationService.createReservation(reservationRequest);
     }
 
     @GetMapping("/{reservationId}")
-    public ResponseEntity<FlightReservationResponse> getReservationById(@PathVariable Long reservationId) {
-        FlightReservationResponse response = flightReservationService.getReservationById(reservationId);
-        return ResponseEntity.ok(response);
+    public FlightReservationResponse getReservationById(@PathVariable Long reservationId) {
+        return flightReservationService.getReservationById(reservationId);
     }
 
     @GetMapping("/all")
-    public ResponseEntity<Page<FlightReservationResponse>> getAllReservations(@RequestParam(defaultValue = "0") int page,
-                                                                              @RequestParam(defaultValue = "10") int size) {
-        PageRequest pageRequest = PageRequest.of(page, size);
-        Page<FlightReservationResponse> response = flightReservationService.getAllReservations(pageRequest);
-        return ResponseEntity.ok(response);
+    public Page<FlightReservationResponse> getAllReservations(Pageable pageable) {
+        return flightReservationService.getAllReservations(pageable);
     }
 
     @PutMapping("/{reservationId}/payment-status")
-    public ResponseEntity<FlightReservationResponse> updatePaymentStatus(@PathVariable Long reservationId, @RequestBody UpdatePaymentStatusRequest updatePaymentStatusRequest) {
-        FlightReservationResponse response = flightReservationService.updatePaymentStatus(reservationId, updatePaymentStatusRequest);
-
-        return ResponseEntity.ok(response);
-
+    public FlightReservationResponse updatePaymentStatus(@PathVariable Long reservationId, @RequestBody UpdatePaymentStatusRequest updatePaymentStatusRequest) {
+        return flightReservationService.updatePaymentStatus(reservationId, updatePaymentStatusRequest);
     }
 
     @DeleteMapping("/{reservationId}")
-    public ResponseEntity<String> deleteReservation(@PathVariable Long reservationId) {
+    public String  deleteReservation(@PathVariable Long reservationId) {
         flightReservationService.deleteReservation(reservationId);
-        return ResponseEntity.ok("Reservation with ID " + reservationId + " deleted successfully.");
+        return "Reservation with ID %s deleted successfully.".formatted(reservationId);
     }
 }

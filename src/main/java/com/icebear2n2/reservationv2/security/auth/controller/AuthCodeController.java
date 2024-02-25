@@ -17,20 +17,19 @@ public class AuthCodeController {
     private final AuthCodeService authCodeService;
 
     @PostMapping
-    public ResponseEntity<String> sendAuthCode(@RequestBody PhoneRequest phoneRequest) {
+    public String sendAuthCode(@RequestBody PhoneRequest phoneRequest) {
         authCodeService.sendAuthCode(phoneRequest);
-        return new ResponseEntity<>("SEND AUTH CODE SUCCESSFULLY.", HttpStatus.OK);
+        return "SEND AUTH CODE SUCCESSFULLY.";
     }
 
     @PostMapping("/check")
-    public ResponseEntity<String> checkAuthCode(@RequestBody CheckAuthCodeRequest checkAuthCodeRequest) {
+    public String checkAuthCode(@RequestBody CheckAuthCodeRequest checkAuthCodeRequest) {
         authCodeService.checkAuthCode(checkAuthCodeRequest);
-        return new ResponseEntity<>("CHECK AUTH CODE SUCCESSFULLY.", HttpStatus.OK);
+        return "CHECK AUTH CODE SUCCESSFULLY.";
     }
 
     @GetMapping("/balance")
-    public ResponseEntity<Balance> getBalance() {
-        Balance balance = authCodeService.getBalance();
-        return new ResponseEntity<>(balance, HttpStatus.OK);
+    public Balance getBalance() {
+        return authCodeService.getBalance();
     }
 }

@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,165 +31,73 @@ import java.util.stream.Collectors;
 public class FlightService {
     private final FlightRepository flightRepository;
     private static final Logger logger = LoggerFactory.getLogger(FlightService.class);
-    // 비행기 생성
+
+    @Transactional
     public FlightResponse createFlight(FlightRequest flightRequest) {
-        try {
             Flight flight = flightRequest.toEntity();
             generateSeats(flight, flightRequest.toEntity().getSeatCapacity(), flightRequest.getBusinessClassPrice(), flightRequest.getEconomyClassPrice() ); // 좌석 생성
-            Flight savedFlight = flightRepository.save(flight); // 저장
+            Flight savedFlight = flightRepository.save(flight);
             return new FlightResponse(savedFlight);
-        } catch (Exception ex) {
-            throw new RuntimeException("Failed to create flight: " + ex.getMessage());
-        }
     }
 
-
-    // 비즈니스 로직: 좌석 생성
-    private void generateSeats(Flight flight, int totalSeats, int businessClassPrice, int economyClassPrice) {
-        List<Seat> seats = new ArrayList<>();
-
-        // 비즈니스석 생성 (최대 4개)
-        int maxBusinessClassSeats = Math.min(totalSeats / 2, 4); // 최대 4개의 비즈니스석 생성
-        for (int i = 1; i <= maxBusinessClassSeats; i++) {
-            Seat seat = Seat.builder()
-                    .seatNumber("B" + i) // 고정된 4자리의 좌석 번호로 설정
-                    .seatClass("Business")
-                    .price(businessClassPrice) // 비즈니스석 가격 설정
-                    .reserved(false)
-                    .adultDiscountRate(0)
-                    .childDiscountRate(25)
-                    .infantDiscountRate(50)
-                    .flight(flight) // 해당 좌석이 속한 비행기 설정
-                    .build();
-            seats.add(seat); // 생성된 좌석을 리스트에 추가
-        }
-
-        // 이코노미석 생성
-        int economyClassSeats = totalSeats - maxBusinessClassSeats;
-        for (int i = 1; i <= economyClassSeats; i++) {
-            Seat seat = Seat.builder()
-                    .seatNumber("E" + i) // 이코노미석의 좌석 번호 설정
-                    .seatClass("Economy")
-                    .price(economyClassPrice) // 이코노미석 가격 설정
-                    .reserved(false)
-                    .adultDiscountRate(0)
-                    .childDiscountRate(25)
-                    .infantDiscountRate(50)
-                    .flight(flight) // 해당 좌석이 속한 비행기 설정
-                    .build();
-            seats.add(seat); // 생성된 좌석을 리스트에 추가
-        }
-
-        flight.setSeats(seats); // 비행기에 생성된 좌석 설정
-    }
-
-
-    // 항공편 조회
-    public FlightResponse getFlightById(Long flightId) {
-        Flight flight = flightRepository.findById(flightId)
-                .orElseThrow(() -> new EntityNotFoundException("Flight not found with id: " + flightId));
+    @Transactional
+    public FlightResponse updateFlightTime(Long flightId, UpdateFlightRequest updateFlightRequest) {
+        Flight flight = getFlight(flightId);
+        updateFlightRequest.departureTime().ifPresent(flight::setDepartureTime);
+        updateFlightRequest.arrivalTime().ifPresent(flight::setArrivalTime);
         return new FlightResponse(flight);
     }
 
-    // 출발 시간 빠른 순으로 항공편 조회
-    public Page<FlightResponse> getFlightsByEarliestDepartureTime(PageRequest pageRequest) {
-        try {
-            Page<Flight> flights = flightRepository.findAllByOrderByDepartureTimeAsc(pageRequest);
-            return flights.map(FlightResponse::new);
-        } catch (Exception ex) {
-            throw new RuntimeException("Failed to get flights by earliest departure time: " + ex.getMessage());
-        }
-    }
-
-    // 출발 시간 늦은 순으로 항공편 조회
-    public Page<FlightResponse> getFlightsByLatestDepartureTime(PageRequest pageRequest) {
-        try {
-            Page<Flight> flights = flightRepository.findAllByOrderByDepartureTimeDesc(pageRequest);
-            return flights.map(FlightResponse::new);
-        } catch (Exception ex) {
-            throw new RuntimeException("Failed to get flights by latest departure time: " + ex.getMessage());
-        }
-    }
-
-    // 날짜 별로 항공편 조회
-    public Page<FlightResponse> getFlightsByDate(LocalDate date, PageRequest pageRequest) {
-        try {
-            Page<Flight> flights = flightRepository.findByDepartureDate(date, pageRequest);
-            return flights.map(FlightResponse::new);
-        } catch (Exception ex) {
-            throw new RuntimeException("Failed to get flights by date: " + ex.getMessage());
-        }
-    }
-
-    // 모든 항공편 조회(삭제 포함)
-    public Page<FlightResponse> getAllFlights(PageRequest pageRequest) {
-        try {
-            Page<Flight> allFlights = flightRepository.findAll(pageRequest);
-            return allFlights.map(FlightResponse::new);
-        } catch (Exception ex) {
-            throw new RuntimeException("Failed to get all flights: " + ex.getMessage());
-        }
-    }
-
-    // 삭제된 항공편 조회
-    public Page<FlightResponse> getAllByDeletedFlight(PageRequest pageRequest) {
-        try {
-            Page<Flight> allFlights = flightRepository.findAllByDeletedAtNotNull(pageRequest);
-            return allFlights.map(FlightResponse::new);
-        } catch (Exception ex) {
-            throw new RuntimeException("Failed to get all flights: " + ex.getMessage());
-        }
-    }
-
-    // 삭제되지 않은 항공편 조회
-    public Page<FlightResponse> getAllByNotDeletedFlight(PageRequest pageRequest) {
-        try {
-            Page<Flight> allFlights = flightRepository.findAllByDeletedAtNull(pageRequest);
-            return allFlights.map(FlightResponse::new);
-        } catch (Exception ex) {
-            throw new RuntimeException("Failed to get all flights: " + ex.getMessage());
-        }
-    }
-
-    // 항공편 출발 및 도착 시간 업데이트
-    public FlightResponse updateFlightTime(Long flightId, UpdateFlightRequest updateFlightRequest) {
-        try {
-            Flight flight = flightRepository.findById(flightId)
-                    .orElseThrow(() -> new EntityNotFoundException("Flight not found with id: " + flightId));
-
-            if (updateFlightRequest.getDepartureTime() != null) {
-                flight.setDepartureTime(updateFlightRequest.getDepartureTime());
-            }
-            if (updateFlightRequest.getArrivalTime() != null) {
-                flight.setArrivalTime(updateFlightRequest.getArrivalTime());
-            }
-
-            Flight updatedFlight = flightRepository.save(flight);
-            return new FlightResponse(updatedFlight);
-        } catch (Exception ex) {
-            throw new RuntimeException("Failed to update flight time: " + ex.getMessage());
-        }
-    }
-
-    // 항공편 삭제 X -> 삭제 시간 저장 (예약 기록 저장을 위해)
+    @Transactional
     public void deleteFlight(Long flightId) {
-        try {
-            Flight flight = flightRepository.findById(flightId).orElseThrow(() -> new EntityNotFoundException("Flight not found with id: " + flightId));
-            flight.setDeletedAt(new Timestamp(System.currentTimeMillis()));
-            flightRepository.save(flight);
-        } catch (Exception ex) {
-            throw new RuntimeException("Failed to delete flight: " + ex.getMessage());
-        }
+        Flight flight = getFlight(flightId);
+        flight.setDeletedAt(new Timestamp(System.currentTimeMillis()));
+
     }
 
-    // 항공편 삭제 X -> 삭제 시간 저장 (예약 기록 저장을 위해)
-    @Scheduled(cron = "0 * * * * ?") // 매분 0초마다 실행
+    public FlightResponse getFlightById(Long flightId) {
+        return new FlightResponse(getFlight(flightId));
+    }
+
+    public Page<FlightResponse> getFlightsByEarliestDepartureTime(Pageable pageable) {
+            Page<Flight> flights = flightRepository.findAllByOrderByDepartureTimeAsc(pageable);
+            return flights.map(FlightResponse::new);
+    }
+
+    public Page<FlightResponse> getFlightsByLatestDepartureTime(Pageable pageable) {
+            Page<Flight> flights = flightRepository.findAllByOrderByDepartureTimeDesc(pageable);
+            return flights.map(FlightResponse::new);
+
+    }
+
+    public Page<FlightResponse> getFlightsByDate(LocalDate date, Pageable pageable) {
+            Page<Flight> flights = flightRepository.findByDepartureDate(date, pageable);
+            return flights.map(FlightResponse::new);
+    }
+
+    public Page<FlightResponse> getAllFlights(Pageable pageable) {
+            Page<Flight> allFlights = flightRepository.findAll(pageable);
+            return allFlights.map(FlightResponse::new);
+    }
+
+    public Page<FlightResponse> getAllByDeletedFlight(Pageable pageable) {
+            Page<Flight> allFlights = flightRepository.findAllByDeletedAtNotNull(pageable);
+            return allFlights.map(FlightResponse::new);
+
+    }
+
+    public Page<FlightResponse> getAllByNotDeletedFlight(Pageable pageable) {
+            Page<Flight> allFlights = flightRepository.findAllByDeletedAtNull(pageable);
+            return allFlights.map(FlightResponse::new);
+    }
+
+    @Scheduled(cron = "0 * * * * ?")
+    @Transactional
     public void deletePastFlights() {
         LocalDateTime now = LocalDateTime.now();
         List<Flight> flights = flightRepository.findAll();
         int deletedCount = 0;
 
-        // 현재 시간보다 이전에 출발한 항공편을 찾고, 삭제 시간 설정
         for (Flight flight : flights) {
             if (isPastFlight(flight, now)) {
                 flight.setDeletedAt(new Timestamp(System.currentTimeMillis()));
@@ -196,45 +105,39 @@ public class FlightService {
             }
         }
 
-        // 조회된 항공편 삭제 전 로그
         logger.info("Deleting past flights: {} flights found", deletedCount);
-
-        // 조회된 항공편 삭제
         flightRepository.saveAll(flights);
-
         logger.info("Deleted {} past flights.", deletedCount);
     }
 
-    // 현재 시간보다 이전에 출발한 항공편이 있는지 확인
+
     private boolean isPastFlight(Flight flight, LocalDateTime now) {
         LocalDateTime departureDateTime = LocalDateTime.of(flight.getDepartureDate(), flight.getDepartureTime());
-        return flight.getDepartureTime() != null && departureDateTime.isBefore(now);
+        return departureDateTime.isBefore(now);
     }
 
-    // 매분마다 스케줄러를 실행하여 출발 시간이 지난 항공편 삭제
-//    @Scheduled(cron = "0 * * * * ?") // 매분 0초마다 실행
-//    public void deletePastFlights() {
-//        LocalDateTime now = LocalDateTime.now();
-//        List<Flight> flights = flightRepository.findAll().stream().filter(flight -> flight.getDepartureTime() != null && LocalDateTime.of(flight.getDepartureDate(), flight.getDepartureTime()).isBefore(now))
-//                .toList();
-//
-//        // 조회된 항공편 삭제 전 로그
-//        logger.info("Deleting past flights: {} flights found", flights.size());
-//
-//        flights.forEach(flight ->
-//                // 각 항공편에 대한 모든 예약 조회 및 삭제
-//                {
-//                    List<FlightReservation> reservations = flightReservationRepository.findAllByFlight(flight);
-//
-//                    if (!reservations.isEmpty()) {
-//                        flightReservationRepository.deleteAll(reservations);
-//                        logger.info("Deleted reservations for flight ID: {}", flight.getId());
-//                    }
-//                }
-//                );
-//
-//        // 조회된 항공편 삭제
-//        flightRepository.deleteAll(flights);
-//        logger.info("Deleted {} past flights.", flights.size());
-//    }
+
+    private void generateSeats(Flight flight, int totalSeats, int businessClassPrice, int economyClassPrice) {
+        List<Seat> seats = new ArrayList<>();
+
+
+        int maxBusinessClassSeats = Math.min(totalSeats / 2, 4);
+        for (int i = 1; i <= maxBusinessClassSeats; i++) {
+            seats.add(Seat.generateBusinessSeats(flight, i, businessClassPrice));
+        }
+
+
+        int economyClassSeats = totalSeats - maxBusinessClassSeats;
+        for (int i = 1; i <= economyClassSeats; i++) {
+            seats.add(Seat.generateEconomyClassSeats(flight, i, economyClassPrice));
+        }
+
+        flight.setSeats(seats);
+    }
+
+    private Flight getFlight(Long flightId) {
+        return flightRepository.findById(flightId)
+                .orElseThrow(() -> new EntityNotFoundException("Flight not found with id: %s".formatted(flightId)));
+    }
+
 }

@@ -15,18 +15,18 @@ public class PasswordRecoveryController {
     private final PasswordRecoveryService passwordRecoveryService;
 
     @PostMapping("/{userId}")
-    public ResponseEntity<String> requestCode(@PathVariable Long userId
+    public String requestCode(@PathVariable Long userId
     ) {
         passwordRecoveryService.requestPasswordRecovery(userId);
-        return new ResponseEntity<>("SEND AUTH CODE SUCCESSFULLY.", HttpStatus.OK);
+        return "SEND AUTH CODE SUCCESSFULLY.";
     }
 
 
     @PutMapping("/update")
-    public ResponseEntity<String> resetPassword(
+    public String resetPassword(
             @RequestBody
             PasswordRecoveryRequest passwordRecoveryRequest) {
         passwordRecoveryService.verifyAuthCodeAndResetPassword(passwordRecoveryRequest);
-        return new ResponseEntity<>("Password reset was successful.", HttpStatus.OK);
+        return "Password reset was successful.";
     }
 }

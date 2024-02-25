@@ -8,6 +8,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -19,7 +21,7 @@ public class FlightReservationResponse {
     private SeatResponse seat;
     private PaymentStatus paymentStatus;
     private PassengerType passengerType;
-    private int discountedPrice;
+    private BigDecimal discountedPrice;
     private String createdAt;
     private String updatedAt;
     private String cancelledAt;
@@ -28,7 +30,7 @@ public class FlightReservationResponse {
         this.reservationId = reservation.getId();
         this.user = new UserResponse(reservation.getUser());
         this.flight = new FlightResponse(reservation.getFlight());
-        this.seat = new SeatResponse(reservation.getSeat());
+        this.seat = new SeatResponse(reservation.getSeat().get());
         this.paymentStatus = reservation.getPaymentStatus();
         this.passengerType = reservation.getPassengerType();
         this.discountedPrice = reservation.getDiscountedPrice();
@@ -37,10 +39,4 @@ public class FlightReservationResponse {
         this.cancelledAt = reservation.getCancelledAt() != null ? reservation.getCancelledAt().toString() : null;
     }
 
-
-//    public static List<FlightReservationResponse> fromReservationList(List<FlightReservation> reservations) {
-//        return reservations.stream()
-//                .map(FlightReservationResponse::new)
-//                .collect(Collectors.toList());
-//    }
 }

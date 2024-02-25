@@ -8,13 +8,13 @@ import com.icebear2n2.reservationv2.domain.repository.UserRepository;
 import com.icebear2n2.reservationv2.domain.request.FlightReservationRequest;
 import com.icebear2n2.reservationv2.domain.request.UpdatePaymentStatusRequest;
 import com.icebear2n2.reservationv2.domain.response.FlightReservationResponse;
+import com.icebear2n2.reservationv2.exception.SeatReservedException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
-import java.sql.Timestamp;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -25,117 +25,67 @@ public class FlightReservationService {
     private final SeatRepository seatRepository;
 
 
+    @Transactional
     public FlightReservationResponse createReservation(FlightReservationRequest reservationRequest) {
-        try {
-            User user = userRepository.findById(reservationRequest.getUserId())
-                    .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + reservationRequest.getUserId()));
-            Flight flight = flightRepository.findById(reservationRequest.getFlightId())
-                    .orElseThrow(() -> new EntityNotFoundException("Flight not found with id: " + reservationRequest.getFlightId()));
+            User user = getUser(reservationRequest.getUserId());
+            Flight flight = getFlight(reservationRequest.getFlightId());
             Seat seat = seatRepository.findBySeatNumber(reservationRequest.getSeatNumber());
 
             if (seat.isReserved()) {
-                throw new RuntimeException("Seat " + seat.getSeatNumber() + " is already reserved.");
+                throw new SeatReservedException("Seat %s is already reserved.".formatted(seat.getSeatNumber()));
             }
-
-            seat.setReserved(true);
-            seatRepository.save(seat);
-
-
-            double discountRate = 0.0;
-            double discountedPrice = seat.getPrice();
-
-            switch (reservationRequest.getPassengerType()) {
-                case CHILD:
-                    discountRate = seat.getChildDiscountRate() / 100.0;
-                    discountedPrice = seat.getPrice() * (1 - discountRate);
-                    break;
-                case INFANT:
-                    discountRate = seat.getInfantDiscountRate() / 100.0;
-                    discountedPrice = seat.getPrice() * (1 - discountRate);
-                    System.out.println("2 discountedPrice = " + discountedPrice);
-                    break;
-                case ADULT:
-                    break;
-            }
-
-            FlightReservation reservation = FlightReservation.builder()
-                    .user(user)
-                    .flight(flight)
-                    .seat(seat)
-                    .paymentStatus(reservationRequest.getPaymentStatus())
-                    .passengerType(reservationRequest.getPassengerType())
-                    .discountedPrice((int) Math.round(discountedPrice))
-                    .build();
-
-            FlightReservation savedReservation = flightReservationRepository.save(reservation);
-
-            return new FlightReservationResponse(savedReservation);
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            throw new RuntimeException("Failed to create reservation: " + ex.getMessage());
-        }
+            seat.reserved();
+            return new FlightReservationResponse(createFlightReservation(reservationRequest, user, flight, seat));
     }
 
-
-    // 예약 조회
     public FlightReservationResponse getReservationById(Long reservationId) {
-        try {
-            FlightReservation reservation = flightReservationRepository.findById(reservationId)
-                    .orElseThrow(() -> new EntityNotFoundException("Reservation not found with id: " + reservationId));
+            FlightReservation reservation = getReservation(reservationId);
             return new FlightReservationResponse(reservation);
-        } catch (Exception ex) {
-
-            ex.printStackTrace();
-            throw new RuntimeException("Failed to get reservation: " + ex.getMessage());
-        }
     }
 
-    // 모든 예약 조회
-    public Page<FlightReservationResponse> getAllReservations(PageRequest pageRequest) {
-        try {
-            Page<FlightReservation> reservations = flightReservationRepository.findAll(pageRequest);
+    public Page<FlightReservationResponse> getAllReservations(Pageable pageable) {
+            Page<FlightReservation> reservations = flightReservationRepository.findAll(pageable);
             return reservations.map(FlightReservationResponse::new);
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            throw new RuntimeException("Failed to get all reservations: " + ex.getMessage());
-        }
     }
 
-    // 결제 상태 업데이트 로직 (초기 -> PENDING)
+    @Transactional
     public FlightReservationResponse updatePaymentStatus(Long reservationId, UpdatePaymentStatusRequest updatePaymentStatusRequest) {
-        try {
-            FlightReservation reservation = flightReservationRepository.findById(reservationId).orElseThrow(() -> new EntityNotFoundException("Reservation not found with id: " + reservationId));
-            if (updatePaymentStatusRequest.getPaymentStatus() != null) {
-                reservation.setPaymentStatus(updatePaymentStatusRequest.getPaymentStatus());
+            FlightReservation reservation = getReservation(reservationId);
+
+            updatePaymentStatusRequest.paymentStatus().ifPresent(reservation::setPaymentStatus);
+
+            if (updatePaymentStatusRequest.isCanceled()) {
+                reservation.cancel();
             }
-            if (updatePaymentStatusRequest.getPaymentStatus() == PaymentStatus.PAYMENT_CANCELLED) {
-                Seat seat = reservation.getSeat();
-                if (seat != null) {
-                    seat.setReserved(false);
-                    seatRepository.save(seat);
-                }
-                reservation.setCancelledAt(new Timestamp(System.currentTimeMillis()));
-            }
-            FlightReservation updatedReservation = flightReservationRepository.save(reservation);
-            return new FlightReservationResponse(updatedReservation);
-        } catch (Exception ex) {
-                ex.printStackTrace();
-                throw new RuntimeException("Failed to update reservations: " + ex.getMessage());
-        }
+
+            return new FlightReservationResponse(reservation);
     }
 
+    @Transactional
     public void deleteReservation(Long reservationId) {
-        try {
-            FlightReservation flightReservation = flightReservationRepository.findById(reservationId).orElseThrow(() -> new EntityNotFoundException("Reservation not found with id: " + reservationId));
-            Seat seat = seatRepository.findBySeatNumber(flightReservation.getSeat().getSeatNumber());
-            seat.setReserved(false);
-            seatRepository.save(seat);
-            flightReservationRepository.delete(flightReservation);
-
-        } catch (Exception ex) {
-
-            ex.printStackTrace();
-            throw new RuntimeException("Failed to delete reservation: " + ex.getMessage());
-        }
+        FlightReservation flightReservation = getReservation(reservationId);
+        Seat seat = seatRepository.findBySeatNumber(flightReservation.getSeat().get().getSeatNumber());
+        seat.setReserved(false);
     }
+
+    private FlightReservation getReservation(Long reservationId) {
+        return flightReservationRepository.findById(reservationId).orElseThrow(() -> new EntityNotFoundException("Reservation not found with id: " + reservationId));
+    }
+
+
+
+    private User getUser(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+    }
+
+    private Flight getFlight(Long flightId) {
+        return flightRepository.findById(flightId)
+                .orElseThrow(() -> new EntityNotFoundException("Flight not found with id: " + flightId));
+    }
+
+    private FlightReservation createFlightReservation(FlightReservationRequest reservationRequest, User user, Flight flight, Seat seat) {
+        return flightReservationRepository.save(FlightReservation.create(user, flight, seat, reservationRequest.getPaymentStatus(), reservationRequest.getPassengerType()));
+    }
+
 }
